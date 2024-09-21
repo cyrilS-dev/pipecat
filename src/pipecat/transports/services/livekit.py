@@ -57,20 +57,16 @@ class LiveKitCallbacks(BaseModel):
 class LiveKitTransportClient:
     def __init__(
         self,
-        url: str,
-        token: str,
-        room_name: str,
+        room : rtc.Room,
         params: LiveKitParams,
         callbacks: LiveKitCallbacks,
         loop: asyncio.AbstractEventLoop,
     ):
-        self._url = url
-        self._token = token
-        self._room_name = room_name
+        self._room_name = room.name
         self._params = params
         self._callbacks = callbacks
         self._loop = loop
-        self._room = rtc.Room(loop=loop)
+        self._room = room
         self._participant_id: str = ""
         self._connected = False
         self._audio_source: rtc.AudioSource | None = None
@@ -99,11 +95,6 @@ class LiveKitTransportClient:
         logger.info(f"Connecting to {self._room_name}")
 
         try:
-            await self._room.connect(
-                self._url,
-                self._token,
-                options=rtc.RoomOptions(auto_subscribe=True),
-            )
             self._connected = True
             self._participant_id = self._room.local_participant.sid
             logger.info(f"Connected to {self._room_name}")
@@ -415,9 +406,7 @@ class LiveKitOutputTransport(BaseOutputTransport):
 class LiveKitTransport(BaseTransport):
     def __init__(
         self,
-        url: str,
-        token: str,
-        room_name: str,
+        room: rtc.Room,
         params: LiveKitParams = LiveKitParams(),
         input_name: str | None = None,
         output_name: str | None = None,
@@ -425,12 +414,9 @@ class LiveKitTransport(BaseTransport):
     ):
         super().__init__(input_name=input_name, output_name=output_name, loop=loop)
 
-        self._url = url
-        self._token = token
-        self._room_name = room_name
         self._params = params
 
-        self._client = LiveKitTransportClient(url, token, room_name, self._params, self._create_callbacks(), self._loop)
+        self._client = LiveKitTransportClient(room, self._params, self._create_callbacks(), self._loop)
         self._input: LiveKitInputTransport | None = None
         self._output: LiveKitOutputTransport | None = None
 
